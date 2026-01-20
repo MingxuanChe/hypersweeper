@@ -168,6 +168,8 @@ class HypersweeperBackend(Sweeper):
                 v = v.item()  # noqa: PLW2901
             if isinstance(v, np.str_):
                 v = str(v)  # noqa: PLW2901
+            if isinstance(v, np.bool_):
+                v = bool(v)  # noqa: PLW2901
             OmegaConf.update(final_config, k, v, force_add=True)
 
         with open(Path(optimizer.output_dir) / "final_config.yaml", "w+") as fp:
