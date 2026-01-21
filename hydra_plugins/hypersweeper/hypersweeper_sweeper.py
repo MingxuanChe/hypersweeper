@@ -331,11 +331,17 @@ class HypersweeperSweeper:
         Float
             Best performance value
         """
-        if self.maximize:
-            best_current_id = np.argmax(self.history["performance"])
+        if np.array(self.history['performance']).ndim == 2:
+            # if multiple seeds are used
+            mean_performance = np.mean(self.history['performance'], axis=1)
         else:
-            best_current_id = np.argmin(self.history["performance"])
-        inc_performance = self.history["performance"][best_current_id]
+            mean_performance = np.array(self.history['performance'])
+            
+        if self.maximize:
+            best_current_id = np.argmax(mean_performance)
+        else:
+            best_current_id = np.argmin(mean_performance)
+        inc_performance = mean_performance[best_current_id]
         inc_config = self.history["config"][best_current_id]
         return inc_config, inc_performance
 
@@ -349,7 +355,20 @@ class HypersweeperSweeper:
         filename: str
             The name of the csv file
         """
-        dataframe = pd.DataFrame(data)
+        # Convert any numpy arrays to strings without newlines before creating dataframe
+        processed_data = {}
+        for key, value in data.items():
+            if key == "performance" or "performance" in key:
+                # Convert list/array values to string without newlines
+                processed_data[key] = [
+                    np.array2string(np.asarray(v), separator=',', max_line_width=np.inf)# .replace(' ', '')
+                    if isinstance(np.asarray(v), list | np.ndarray) else v 
+                    for v in value
+                ]
+            else:
+                processed_data[key] = value
+        
+        dataframe = pd.DataFrame(processed_data)
 
         dataframes_to_concat = []
         if "config_id" not in dataframe.columns:
@@ -391,6 +410,9 @@ class HypersweeperSweeper:
                     self.history[f"performance_{self.seed_keyword}_{seed}"].append(performances[i][seed_idx])
             else:
                 self.history["performance"].append(performances[i])
+                if np.array(performances).ndim == 2:
+                    mean_performance = np.mean(performances, axis=1)
+                    self.history["mean_performance"].append(mean_performance[i])
             if budgets[i] is not None:
                 self.history["budget"].append(budgets[i])
             else:
@@ -399,13 +421,20 @@ class HypersweeperSweeper:
 
     def write_incumbents(self) -> None:
         """Write the incumbent configurations to a csv file."""
+        if np.array(self.history['performance']).ndim == 2: # NOTE: for standard use case, performance stores only mean values
+            # for arlbench with multiple seeds
+            mean_performance = np.mean(self.history['performance'], axis=1)
+        else: 
+            mean_performance = self.history['performance']
+            
         if self.maximize:
-            best_config_id = np.argmax(self.history["performance"])
+            best_config_id = np.argmax(mean_performance)
         else:
-            best_config_id = np.argmin(self.history["performance"])
+            best_config_id = np.argmin(mean_performance)
+            
         self.incumbents["config_id"].append(best_config_id)
         self.incumbents["config"].append(self.history["config"][best_config_id])
-        self.incumbents["performance"].append(self.history["performance"][best_config_id])
+        self.incumbents["performance"].append(mean_performance[best_config_id])
         self.incumbents["budget"].append(self.history["budget"][best_config_id])
         try:
             self.incumbents["budget_used"].append(sum(self.history["budget"]))
