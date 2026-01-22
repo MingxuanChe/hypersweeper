@@ -338,8 +338,12 @@ class HypersweeperSweeper:
             mean_performance = np.array(self.history['performance'])
             
         if self.maximize:
+            # replace nan with -inf for maximization
+            mean_performance = np.nan_to_num(mean_performance, nan=-np.inf)
             best_current_id = np.argmax(mean_performance)
         else:
+            # replace nan with +inf for minimization
+            mean_performance = np.nan_to_num(mean_performance, nan=np.inf)
             best_current_id = np.argmin(mean_performance)
         inc_performance = mean_performance[best_current_id]
         inc_config = self.history["config"][best_current_id]
@@ -428,8 +432,10 @@ class HypersweeperSweeper:
             mean_performance = self.history['performance']
             
         if self.maximize:
+            mean_performance = np.nan_to_num(mean_performance, nan=-np.inf)
             best_config_id = np.argmax(mean_performance)
         else:
+            mean_performance = np.nan_to_num(mean_performance, nan=np.inf)
             best_config_id = np.argmin(mean_performance)
             
         self.incumbents["config_id"].append(best_config_id)
