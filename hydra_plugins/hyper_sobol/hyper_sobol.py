@@ -157,7 +157,10 @@ class HyperSobol:
             else:
                 raise ValueError(f"Unsupported hyperparameter type: {type(hp)}")
         
-        return Configuration(self.configspace, values=config_dict)
+        # Use allow_inactive_with_values=True to handle conditional hyperparameters
+        # This allows values for inactive hyperparameters instead of raising InactiveHyperparameterSetError
+        # ConfigSpace will handle inactive hyperparameters appropriately during configuration usage
+        return Configuration(self.configspace, values=config_dict, allow_inactive_with_values=True)
 
     def tell(self, info, value):
         """Do nothing for Sobol sampling (non-adaptive)."""
